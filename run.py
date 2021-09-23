@@ -184,7 +184,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    output_path = args.output if args.output else input_path
+    output_path = args.output_path if args.output_path else input_path
 
     # set extension to save depth files.
     save_npy = args.save_npy
