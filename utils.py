@@ -187,4 +187,20 @@ def write_depth(path, depth, bits=1):
     elif bits == 2:
         cv2.imwrite(path + ".png", out.astype("uint16"))
 
-    return
+def str_to_bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def write_npy(path, depth):
+    """Write depth map to npy file.
+
+    Args:
+        path (str): filepath without extension
+        depth (np.array): depth
+    """
+    depth_half_precision = depth.astype(np.float16)
+    np.save(f"{path}.npy", depth_half_precision)

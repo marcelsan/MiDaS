@@ -14,7 +14,7 @@ from midas.midas_net_custom import MidasNet_small
 from midas.transforms import Resize, NormalizeImage, PrepareForNet
 
 
-def run(input_path, output_path, model_path, model_type="large", optimize=True):
+def run(input_path, output_path, model_path, model_type="large", optimize=True, save_npy=True, save_png=True):
     """Run MonoDepthNN to compute depth maps.
 
     Args:
@@ -100,7 +100,8 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True):
     num_images = len(img_names)
 
     # create output folder
-    os.makedirs(output_path, exist_ok=True)
+    if not os.path.isdir(output_path):
+        os.makedirs(output_path, exist_ok=True)
 
     print("start processing")
 
@@ -109,7 +110,6 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True):
         print("  processing {} ({}/{})".format(img_name, ind + 1, num_images))
 
         # input
-
         img = utils.read_image(img_name)
         img_input = transform({"image": img})["image"]
 
@@ -133,42 +133,62 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True):
             )
 
         # output
-        filename = os.path.join(
-            output_path, os.path.splitext(os.path.basename(img_name))[0]
-        )
-        utils.write_depth(filename, prediction, bits=2)
+        if save_png:
+            filename = os.path.join(
+                output_path, os.path.splitext(os.path.basename(img_name))[0]
+            )
+            utils.write_depth(filename, prediction, bits=2)
+
+        if save_npy:
+            base_image_name = os.path.splitext(os.path.basename(img_name))[0]
+            base_image_name = base_image_name.replace("dm_", "dm_midas_")
+            filename = os.path.join(output_path, base_image_name)
+            utils.write_npy(filename, prediction)
 
     print("finished")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     parser.add_argument('-i', '--input_path', 
         default='input',
-        help='folder with input images'
+        help='folder with input images',
+        required=True
     )
-
     parser.add_argument('-o', '--output_path', 
-        default='output',
         help='folder for output images'
     )
-
     parser.add_argument('-m', '--model_weights', 
         default=None,
         help='path to the trained weights of model'
     )
-
     parser.add_argument('-t', '--model_type', 
         default='dpt_large',
         help='model type: dpt_large, dpt_hybrid, midas_v21_large or midas_v21_small'
     )
-
+    parser.add_argument('--save_npy', 
+        type=utils.str_to_bool, 
+        required=False, 
+        default=True, 
+        help='True if you want to save the infered depth to a .npy file.'
+    )
+    parser.add_argument('--save_png', 
+        type=utils.str_to_bool, 
+        required=False, 
+        default=True, 
+        help='True if you want to save the infered depth to a .png file.'
+    )
     parser.add_argument('--optimize', dest='optimize', action='store_true')
     parser.add_argument('--no-optimize', dest='optimize', action='store_false')
     parser.set_defaults(optimize=True)
 
     args = parser.parse_args()
+
+    output_path = args.output if args.output else input_path
+
+    # set extension to save depth files.
+    save_npy = args.save_npy
+    save_png = args.save_png
 
     default_models = {
         "midas_v21_small": "weights/midas_v21_small-70d6b9c8.pt",
@@ -185,4 +205,4 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
 
     # compute depth maps
-    run(args.input_path, args.output_path, args.model_weights, args.model_type, args.optimize)
+    run(args.input_path, output_path, args.model_weights, args.model_type, args.optimize, save_npy, save_png)
