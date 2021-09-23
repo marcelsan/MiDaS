@@ -64,7 +64,7 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True, 
     else:
         print(f"model_type '{model_type}' not implemented, use: --model_type large")
         assert False
-    
+
     transform = Compose(
         [
             Resize(
@@ -82,21 +82,21 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True, 
     )
 
     model.eval()
-    
+
     if optimize==True:
         # rand_example = torch.rand(1, 3, net_h, net_w)
         # model(rand_example)
         # traced_script_module = torch.jit.trace(model, rand_example)
         # model = traced_script_module
-    
+
         if device == torch.device("cuda"):
-            model = model.to(memory_format=torch.channels_last)  
+            model = model.to(memory_format=torch.channels_last)
             model = model.half()
 
     model.to(device)
 
     # get input
-    img_names = glob.glob(os.path.join(input_path, "*"))
+    img_names = glob.glob(os.path.join(input_path, "im_*.jpg"))
     num_images = len(img_names)
 
     # create output folder
@@ -117,7 +117,7 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True, 
         with torch.no_grad():
             sample = torch.from_numpy(img_input).to(device).unsqueeze(0)
             if optimize==True and device == torch.device("cuda"):
-                sample = sample.to(memory_format=torch.channels_last)  
+                sample = sample.to(memory_format=torch.channels_last)
                 sample = sample.half()
             prediction = model.forward(sample)
             prediction = (
@@ -133,6 +133,7 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True, 
             )
 
         # output
+
         if save_png:
             filename = os.path.join(
                 output_path, os.path.splitext(os.path.basename(img_name))[0]
@@ -141,7 +142,7 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True, 
 
         if save_npy:
             base_image_name = os.path.splitext(os.path.basename(img_name))[0]
-            base_image_name = base_image_name.replace("dm_", "dm_midas_")
+            base_image_name = base_image_name.replace("im_", "dm_midas_")
             filename = os.path.join(output_path, base_image_name)
             utils.write_npy(filename, prediction)
 
@@ -150,32 +151,32 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True, 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input_path', 
+    parser.add_argument('-i', '--input_path',
         default='input',
         help='folder with input images',
         required=True
     )
-    parser.add_argument('-o', '--output_path', 
-        help='folder for output images'
+    parser.add_argument('-o', '--output_path',
+        help='folder for output image'
     )
-    parser.add_argument('-m', '--model_weights', 
+    parser.add_argument('-m', '--model_weights',
         default=None,
         help='path to the trained weights of model'
     )
-    parser.add_argument('-t', '--model_type', 
+    parser.add_argument('-t', '--model_type',
         default='dpt_large',
         help='model type: dpt_large, dpt_hybrid, midas_v21_large or midas_v21_small'
     )
-    parser.add_argument('--save_npy', 
-        type=utils.str_to_bool, 
-        required=False, 
-        default=True, 
+    parser.add_argument('--save_npy',
+        type=utils.str_to_bool,
+        required=False,
+        default=True,
         help='True if you want to save the infered depth to a .npy file.'
     )
-    parser.add_argument('--save_png', 
-        type=utils.str_to_bool, 
-        required=False, 
-        default=True, 
+    parser.add_argument('--save_png',
+        type=utils.str_to_bool,
+        required=False,
+        default=True,
         help='True if you want to save the infered depth to a .png file.'
     )
     parser.add_argument('--optimize', dest='optimize', action='store_true')
@@ -185,7 +186,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     input_path = args.input_path
-    output_path = args.output_path if args.output_path else os.path.dirname(input_path)
+    output_path = args.output_path if args.output_path else input_path
 
     # set extension to save depth files.
     save_npy = args.save_npy
