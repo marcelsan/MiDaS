@@ -124,7 +124,7 @@ def run(input_path, output_path, model_path, model_type="large", optimize=True, 
                 torch.nn.functional.interpolate(
                     prediction.unsqueeze(1),
                     size=img.shape[:2],
-                    mode="bicubic",
+                    mode="bilinear",
                     align_corners=False,
                 )
                 .squeeze()
